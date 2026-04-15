@@ -1,5 +1,6 @@
 import { Node } from "../Abstract/Node";
 import { Instruccion } from "../Abstract/Instruccion";
+import { Errores } from "../Excepciones/Errores";
 import { Arbol } from "../Simbolo/Arbol";
 import { Simbolo } from "../Simbolo/Simbolo";
 import { Tipo } from "../Simbolo/Tipo";
@@ -22,6 +23,15 @@ export class Struct extends Instruccion {
     }
 
     interpretar(arbol: Arbol, tabla: TablaSimbolos): any {
+        if (this.atributos.length === 0) {
+            return new Errores(
+                "Semantico",
+                `El struct ${this.id} debe declarar al menos un atributo`,
+                this.linea,
+                this.col,
+            );
+        }
+
         const error = tabla.setStruct(this.id, this, this.linea, this.col);
         if (error) {
             return error;

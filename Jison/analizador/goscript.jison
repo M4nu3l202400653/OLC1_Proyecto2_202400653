@@ -66,6 +66,71 @@ function createCase(expresion, instrucciones, line, col) {
 function createDefault(instrucciones, line, col) {
     return new Bloque(instrucciones, line, col, "Default");
 }
+
+function createSliceItem(expresion) {
+    return {
+        kind: "expr",
+        expresion,
+    };
+}
+
+function createAnonSliceLiteral(valores, line, col) {
+    return {
+        kind: "anon_slice",
+        valores,
+        line,
+        col,
+    };
+}
+
+function createInvalidLiteral(line, col) {
+    return new Nativo(null, Tipo.primitivo(tipoDato.ERROR), line, col);
+}
+
+function buildTypedSliceLiteral(tipoSlice, valores, line, col) {
+    const expresiones = valores.map((valor) => {
+        if (!valor || typeof valor !== "object") {
+            return createInvalidLiteral(line, col);
+        }
+
+        if (valor.kind === "expr") {
+            return valor.expresion;
+        }
+
+        if (valor.kind === "anon_slice") {
+            if (!tipoSlice.subtipo || tipoSlice.subtipo.tipoDato !== tipoDato.SLICE) {
+                return createInvalidLiteral(valor.line, valor.col);
+            }
+
+            return buildTypedSliceLiteral(
+                tipoSlice.subtipo.clone(),
+                valor.valores,
+                valor.line,
+                valor.col,
+            );
+        }
+
+        return createInvalidLiteral(line, col);
+    });
+
+    return new SliceLiteral(tipoSlice.clone(), expresiones, line, col);
+}
+
+function buildAnonymousLiteral(tipo, literal, line, col) {
+    if (!tipo || !literal) {
+        return createInvalidLiteral(line, col);
+    }
+
+    if (tipo.tipoDato === tipoDato.STRUCT && literal.kind === "anon_struct" && tipo.referencia) {
+        return new InstanciaStruct(tipo.referencia, literal.valor, line, col);
+    }
+
+    if (tipo.tipoDato === tipoDato.SLICE && literal.kind === "anon_slice") {
+        return buildTypedSliceLiteral(tipo, literal.valor, line, col);
+    }
+
+    return createInvalidLiteral(line, col);
+}
 %}
 
 %options locations
@@ -242,11 +307,7 @@ PARAM
 ;
 
 STRUCT_DECL
-    : STRUCT ID LBRACE RBRACE
-        {
-            $$ = new Struct($2, [], @1.first_line, @1.first_column);
-        }
-    | STRUCT ID LBRACE STRUCT_BODY RBRACE
+    : STRUCT ID LBRACE STRUCT_BODY RBRACE
         {
             $$ = new Struct($2, $4, @1.first_line, @1.first_column);
         }
@@ -274,9 +335,7 @@ STRUCT_ATTR_LINE
 ;
 
 STRUCT_ATTR
-    : ID TYPE_REF
-        { $$ = { id: $1, tipo: $2 }; }
-    | TYPE_REF ID
+    : TYPE_REF ID
         { $$ = { id: $2, tipo: $1 }; }
 ;
 
@@ -353,25 +412,31 @@ PRINT_STMT
 DECLARACION_STMT
     : VAR ID TYPE_REF ASSIGN EXP
         { $$ = new Declaracion($3, $2, $5, false, @1.first_line, @1.first_column); }
+    | VAR ID TYPE_REF ASSIGN ANON_LITERAL
+        { $$ = new Declaracion($3, $2, buildAnonymousLiteral($3, $5, @1.first_line, @1.first_column), false, @1.first_line, @1.first_column); }
     | VAR ID TYPE_REF
         { $$ = new Declaracion($3, $2, null, false, @1.first_line, @1.first_column); }
+    | ID ID ASSIGN EXP
+        { $$ = new Declaracion(Tipo.struct($1), $2, $4, false, @2.first_line, @2.first_column); }
+    | ID ID ASSIGN ANON_LITERAL
+        { $$ = new Declaracion(Tipo.struct($1), $2, buildAnonymousLiteral(Tipo.struct($1), $4, @1.first_line, @1.first_column), false, @2.first_line, @2.first_column); }
     | ID DECLARE_ASSIGN EXP
         { $$ = new Declaracion(null, $1, $3, true, @1.first_line, @1.first_column); }
 ;
 
 ASIGNACION_STMT
-    : LHS ASSIGN EXP
+    : POSTFIX_EXP_NO_STRUCT ASSIGN EXP
         { $$ = new Asignacion($1, $3, "=", @2.first_line, @2.first_column); }
-    | LHS PLUS_ASSIGN EXP
+    | POSTFIX_EXP_NO_STRUCT PLUS_ASSIGN EXP
         { $$ = new Asignacion($1, $3, "+=", @2.first_line, @2.first_column); }
-    | LHS MINUS_ASSIGN EXP
+    | POSTFIX_EXP_NO_STRUCT MINUS_ASSIGN EXP
         { $$ = new Asignacion($1, $3, "-=", @2.first_line, @2.first_column); }
 ;
 
 INCDEC_STMT
-    : LHS INC
+    : POSTFIX_EXP_NO_STRUCT INC
         { $$ = new Incremento($1, 1, @2.first_line, @2.first_column); }
-    | LHS DEC
+    | POSTFIX_EXP_NO_STRUCT DEC
         { $$ = new Incremento($1, -1, @2.first_line, @2.first_column); }
 ;
 
@@ -496,15 +561,6 @@ CASE_STMT_LINE
         { $$ = $1; }
     | STMT SEPS
         { $$ = $1; }
-;
-
-LHS
-    : ID
-        { $$ = new Identificador($1, @1.first_line, @1.first_column); }
-    | LHS LBRACKET EXP RBRACKET
-        { $$ = new AccesoIndice($1, $3, @2.first_line, @2.first_column); }
-    | LHS DOT ID
-        { $$ = new AccesoAtributo($1, $3, @2.first_line, @2.first_column); }
 ;
 
 EXP_NO_STRUCT
@@ -699,25 +755,66 @@ ARG_LIST
 ;
 
 SLICE_LITERAL
-    : SLICE_TYPE LBRACE ARG_LIST_OPT RBRACE
-        { $$ = new SliceLiteral($1, $3, @1.first_line, @1.first_column); }
+    : SLICE_TYPE LBRACE SLICE_LITERAL_BODY_OPT RBRACE
+        { $$ = buildTypedSliceLiteral($1, $3, @1.first_line, @1.first_column); }
 ;
 
 STRUCT_LITERAL
-    : ID LBRACE STRUCT_INIT_OPT RBRACE
+    : ID LBRACE STRUCT_INIT_BODY_OPT RBRACE
         { $$ = new InstanciaStruct($1, $3, @1.first_line, @1.first_column); }
 ;
 
-STRUCT_INIT_OPT
-    : STRUCT_INIT_LIST
+ANON_LITERAL
+    : ANON_STRUCT_LITERAL
         { $$ = $1; }
+    | ANON_SLICE_LITERAL
+        { $$ = $1; }
+;
+
+ANON_STRUCT_LITERAL
+    : LBRACE STRUCT_INIT_BODY_REQ_WRAP RBRACE
+        { $$ = { kind: "anon_struct", valor: $2, line: @1.first_line, col: @1.first_column }; }
+;
+
+ANON_SLICE_LITERAL
+    : LBRACE SLICE_LITERAL_BODY_REQ_WRAP RBRACE
+        { $$ = { kind: "anon_slice", valor: $2, line: @1.first_line, col: @1.first_column }; }
+;
+
+STRUCT_INIT_BODY_OPT
+    : STRUCT_INIT_BODY_REQ
+        { $$ = $1; }
+    | SEPS STRUCT_INIT_BODY_REQ
+        { $$ = $2; }
+    | STRUCT_INIT_BODY_REQ SEPS
+        { $$ = $1; }
+    | SEPS STRUCT_INIT_BODY_REQ SEPS
+        { $$ = $2; }
     |
+        { $$ = []; }
+    | SEPS
         { $$ = []; }
 ;
 
+STRUCT_INIT_BODY_REQ
+    : STRUCT_INIT_LIST
+        { $$ = $1; }
+;
+
+STRUCT_INIT_BODY_REQ_WRAP
+    : STRUCT_INIT_BODY_REQ
+        { $$ = $1; }
+    | SEPS STRUCT_INIT_BODY_REQ
+        { $$ = $2; }
+    | STRUCT_INIT_BODY_REQ SEPS
+        { $$ = $1; }
+    | SEPS STRUCT_INIT_BODY_REQ SEPS
+        { $$ = $2; }
+;
+
 STRUCT_INIT_LIST
-    : STRUCT_INIT_LIST COMMA STRUCT_INIT_ITEM
-        { $1.push($3); $$ = $1; }
+    : STRUCT_INIT_LIST COMMA SEPS_OPT STRUCT_INIT_ITEM
+        { $1.push($4); $$ = $1; }
     | STRUCT_INIT_ITEM
         { $$ = [$1]; }
 ;
@@ -725,6 +822,51 @@ STRUCT_INIT_LIST
 STRUCT_INIT_ITEM
     : ID COLON EXP
         { $$ = { id: $1, expresion: $3 }; }
+;
+
+SLICE_LITERAL_BODY_OPT
+    : SLICE_LITERAL_BODY_REQ
+        { $$ = $1; }
+    | SEPS SLICE_LITERAL_BODY_REQ
+        { $$ = $2; }
+    | SLICE_LITERAL_BODY_REQ SEPS
+        { $$ = $1; }
+    | SEPS SLICE_LITERAL_BODY_REQ SEPS
+        { $$ = $2; }
+    |
+        { $$ = []; }
+    | SEPS
+        { $$ = []; }
+;
+
+SLICE_LITERAL_BODY_REQ
+    : SLICE_LITERAL_ITEMS
+        { $$ = $1; }
+;
+
+SLICE_LITERAL_BODY_REQ_WRAP
+    : SLICE_LITERAL_BODY_REQ
+        { $$ = $1; }
+    | SEPS SLICE_LITERAL_BODY_REQ
+        { $$ = $2; }
+    | SLICE_LITERAL_BODY_REQ SEPS
+        { $$ = $1; }
+    | SEPS SLICE_LITERAL_BODY_REQ SEPS
+        { $$ = $2; }
+;
+
+SLICE_LITERAL_ITEMS
+    : SLICE_LITERAL_ITEMS COMMA SEPS_OPT SLICE_LITERAL_ITEM
+        { $1.push($4); $$ = $1; }
+    | SLICE_LITERAL_ITEM
+        { $$ = [$1]; }
+;
+
+SLICE_LITERAL_ITEM
+    : EXP
+        { $$ = createSliceItem($1); }
+    | ANON_SLICE_LITERAL
+        { $$ = createAnonSliceLiteral($1.valor, $1.line, $1.col); }
 ;
 
 TYPE_REF
