@@ -3,8 +3,8 @@ import { startTransition, useDeferredValue, useRef, useState } from "react";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8001";
 
 const codigoInicial = `struct Persona {
-    nombre string
-    edad int
+    string nombre
+    int edad
 }
 
 var numeros []int = []int{1, 2, 3, 4}
@@ -15,7 +15,10 @@ func duplicar(valor int) int {
 
 func main() {
     mensaje := "Proyecto base listo"
-    persona := Persona{nombre: "Ana", edad: 21}
+    Persona persona = {
+        nombre: "Ana",
+        edad: 21
+    }
     total := duplicar(5)
 
     fmt.Println(mensaje)
@@ -45,6 +48,33 @@ const formatearError = (error) => {
     return `${error.tipo ?? "Error"}: ${error.descripcion ?? JSON.stringify(error)}${posicion}`;
 };
 
+const contarNodosAst = (node) => {
+    if (!node) {
+        return 0;
+    }
+
+    return 1 + (node.children ?? []).reduce((total, child) => total + contarNodosAst(child), 0);
+};
+
+function AstTreeNode({ node }) {
+    if (!node) {
+        return null;
+    }
+
+    return (
+        <div className="ast-tree-node">
+            <div className="ast-tree-tag">{node.tag}</div>
+            {(node.children?.length ?? 0) > 0 ? (
+                <div className="ast-tree-children">
+                    {node.children.map((child, index) => (
+                        <AstTreeNode key={`${node.tag}-${index}`} node={child} />
+                    ))}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 function App() {
     const [archivos, setArchivos] = useState([crearArchivo(1, "main.gst")]);
     const [contadorArchivos, setContadorArchivos] = useState(2);
@@ -52,7 +82,7 @@ function App() {
     const [cursor, setCursor] = useState({ linea: 1, columna: 1 });
     const [cargando, setCargando] = useState(false);
     const [panelActivo, setPanelActivo] = useState("consola");
-    const [vistaAst, setVistaAst] = useState("dot");
+    const [vistaAst, setVistaAst] = useState("visual");
     const [consola, setConsola] = useState("");
     const [errores, setErrores] = useState([]);
     const [tablaSimbolos, setTablaSimbolos] = useState([]);
@@ -421,7 +451,15 @@ function App() {
                         <div className="result-surface">
                             <div className="surface-header">
                                 <h2>AST</h2>
+                                <span>{contarNodosAst(ast)} nodo(s)</span>
                                 <div className="mini-switch">
+                                    <button
+                                        type="button"
+                                        className={vistaAst === "visual" ? "active" : ""}
+                                        onClick={() => setVistaAst("visual")}
+                                    >
+                                        Visual
+                                    </button>
                                     <button
                                         type="button"
                                         className={vistaAst === "dot" ? "active" : ""}
@@ -438,7 +476,17 @@ function App() {
                                     </button>
                                 </div>
                             </div>
-                            <pre>{vistaAst === "dot" ? astDot || "Sin AST generado." : JSON.stringify(ast, null, 2) || "Sin AST generado."}</pre>
+                            {vistaAst === "visual" ? (
+                                ast ? (
+                                    <div className="ast-visual-surface">
+                                        <AstTreeNode node={ast} />
+                                    </div>
+                                ) : (
+                                    <p className="empty-state">Sin AST generado.</p>
+                                )
+                            ) : (
+                                <pre>{vistaAst === "dot" ? astDot || "Sin AST generado." : JSON.stringify(ast, null, 2) || "Sin AST generado."}</pre>
+                            )}
                         </div>
                     ) : null}
                 </section>

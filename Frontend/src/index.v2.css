@@ -395,6 +395,66 @@ th {
   background: transparent;
 }
 
+.ast-visual-surface {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 4px 4px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 33, 43, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.08), transparent 24%),
+    linear-gradient(180deg, #fffdfa, #f6efe5);
+}
+
+.ast-tree-node {
+  position: relative;
+  padding-left: 24px;
+}
+
+.ast-tree-node::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(15, 118, 110, 0.18);
+}
+
+.ast-tree-node::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 18px;
+  width: 12px;
+  height: 1px;
+  background: rgba(15, 118, 110, 0.28);
+}
+
+.ast-tree-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin: 10px 0;
+  padding: 8px 14px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffffff, #eaf6f4);
+  color: var(--accent-ink);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.08);
+}
+
+.ast-tree-children {
+  margin-left: 6px;
+  padding-bottom: 4px;
+}
+
+.ast-tree-children > .ast-tree-node:last-child::before {
+  bottom: calc(100% - 28px);
+}
+
 @media (max-width: 1160px) {
   .workspace {
     grid-template-columns: 1fr;
