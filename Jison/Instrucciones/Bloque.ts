@@ -22,7 +22,12 @@ export class Bloque extends Instruccion {
 
         for (const instruccion of this.instrucciones) {
             const resultado = instruccion.interpretar(arbol, entorno);
-            if (resultado instanceof Errores || resultado) {
+            if (resultado instanceof Errores) {
+                arbol.registrarError(resultado);
+                continue;
+            }
+
+            if (resultado) {
                 return resultado;
             }
         }

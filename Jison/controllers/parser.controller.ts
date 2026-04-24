@@ -40,7 +40,8 @@ const construirAst = (instrucciones: Instruccion[]) => {
 
 export const analizar = (req: any, res: any) => {
     const entrada = req.body?.codigo ?? "";
-    parser.yy = { lexicalErrors: [] };
+    const parserEngine = (parser as any).parser ?? parser;
+    parserEngine.yy = { lexicalErrors: [] };
 
     try {
         let instrucciones = parser.parse(entrada);
@@ -78,7 +79,7 @@ export const analizar = (req: any, res: any) => {
         const ast = construirAst(instrucciones);
         arbol.ast = ast;
 
-        const lexicalErrors = Array.isArray(parser.yy?.lexicalErrors) ? parser.yy.lexicalErrors : [];
+        const lexicalErrors = Array.isArray(parserEngine.yy?.lexicalErrors) ? parserEngine.yy.lexicalErrors : [];
         lexicalErrors.forEach((error: Errores) => arbol.registrarError(error));
 
         res.json({
@@ -90,7 +91,7 @@ export const analizar = (req: any, res: any) => {
         });
     } catch (error: any) {
         const errores: Errores[] = [];
-        const lexicalErrors = Array.isArray(parser.yy?.lexicalErrors) ? parser.yy.lexicalErrors : [];
+        const lexicalErrors = Array.isArray(parserEngine.yy?.lexicalErrors) ? parserEngine.yy.lexicalErrors : [];
 
         lexicalErrors.forEach((lexicalError: Errores) => errores.push(lexicalError));
         errores.push(
