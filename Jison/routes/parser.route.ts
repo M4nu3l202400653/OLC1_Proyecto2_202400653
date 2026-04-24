@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { analizar } from "../controllers/parser.controller.v2";
+import { analizar } from "../controllers/parser.controller";
 
 const router = Router();
 

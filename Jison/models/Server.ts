@@ -1,9 +1,7 @@
-import express, { Application, Request, Response } from "express";
+import express, { Application } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Routes
-import testRouter from "../routes/test.route";
 import parserRouter from "../routes/parser.route";
 
 dotenv.config();
@@ -12,8 +10,6 @@ export class Server {
   public app: Application;
   public port: number;
 
-  // Rutas base
-  private testPath = "/api/test";
   private parserPath = "/api/parser";
  
 
@@ -31,7 +27,6 @@ export class Server {
   }
 
   private routes() {
-    this.app.use(this.testPath, testRouter);
     this.app.use(this.parserPath, parserRouter);
   }
 
