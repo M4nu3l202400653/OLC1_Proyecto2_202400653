@@ -178,6 +178,9 @@ function buildAnonymousLiteral(tipo, literal, line, col) {
 "||"                        return 'OR';
 "++"                        return 'INC';
 "--"                        return 'DEC';
+[ \t\f]+                    /* ignorar */;
+"//".*                      /* ignorar */;
+\/\*[\s\S]*?\*\/            /* ignorar */;
 "!"                         return 'NOT';
 "="                         return 'ASSIGN';
 "<"                         return 'LT';
@@ -198,9 +201,6 @@ function buildAnonymousLiteral(tipo, literal, line, col) {
 "."                         return 'DOT';
 ";"                         return 'SEP';
 [\r\n]+                     return 'SEP';
-[ \t\f]+                    /* ignorar */;
-"//".*                      /* ignorar */;
-\/\*[\s\S]*?\*\/            /* ignorar */;
 [0-9]+"."[0-9]+             return 'DECIMAL';
 [0-9]+                      return 'INT';
 \"([^\"\\]|\\[btnfr\"\\])*\" return 'STRING';
@@ -416,6 +416,10 @@ DECLARACION_STMT
         { $$ = new Declaracion($3, $2, buildAnonymousLiteral($3, $5, @1.first_line, @1.first_column), false, @1.first_line, @1.first_column); }
     | VAR ID TYPE_REF
         { $$ = new Declaracion($3, $2, null, false, @1.first_line, @1.first_column); }
+    | DECL_TYPE ID ASSIGN EXP
+        { $$ = new Declaracion($1, $2, $4, false, @2.first_line, @2.first_column); }
+    | DECL_TYPE ID ASSIGN ANON_LITERAL
+        { $$ = new Declaracion($1, $2, buildAnonymousLiteral($1, $4, @1.first_line, @1.first_column), false, @2.first_line, @2.first_column); }
     | ID ID ASSIGN EXP
         { $$ = new Declaracion(Tipo.struct($1), $2, $4, false, @2.first_line, @2.first_column); }
     | ID ID ASSIGN ANON_LITERAL
@@ -815,6 +819,8 @@ STRUCT_INIT_BODY_REQ_WRAP
 STRUCT_INIT_LIST
     : STRUCT_INIT_LIST COMMA SEPS_OPT STRUCT_INIT_ITEM
         { $1.push($4); $$ = $1; }
+    | STRUCT_INIT_LIST COMMA SEPS_OPT
+        { $$ = $1; }
     | STRUCT_INIT_ITEM
         { $$ = [$1]; }
 ;
@@ -858,6 +864,8 @@ SLICE_LITERAL_BODY_REQ_WRAP
 SLICE_LITERAL_ITEMS
     : SLICE_LITERAL_ITEMS COMMA SEPS_OPT SLICE_LITERAL_ITEM
         { $1.push($4); $$ = $1; }
+    | SLICE_LITERAL_ITEMS COMMA SEPS_OPT
+        { $$ = $1; }
     | SLICE_LITERAL_ITEM
         { $$ = [$1]; }
 ;
@@ -876,12 +884,26 @@ TYPE_REF
         { $$ = $1; }
 ;
 
+DECL_TYPE
+    : PRIMITIVE_TYPE
+        { $$ = $1; }
+    | SLICE_TYPE
+        { $$ = $1; }
+;
+
 SLICE_TYPE
     : LBRACKET RBRACKET TYPE_REF
         { $$ = Tipo.slice($3); }
 ;
 
 BASE_TYPE
+    : PRIMITIVE_TYPE
+        { $$ = $1; }
+    | ID
+        { $$ = Tipo.struct($1); }
+;
+
+PRIMITIVE_TYPE
     : INT_TYPE
         { $$ = Tipo.primitivo(tipoDato.ENTERO); }
     | FLOAT_TYPE
@@ -892,8 +914,6 @@ BASE_TYPE
         { $$ = Tipo.primitivo(tipoDato.BOOLEANO); }
     | RUNE_TYPE
         { $$ = Tipo.primitivo(tipoDato.RUNE); }
-    | ID
-        { $$ = Tipo.struct($1); }
 ;
 
 %%
