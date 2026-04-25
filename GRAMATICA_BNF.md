@@ -1,13 +1,5 @@
 # Gramatica BNF de GoScript
 
-Esta gramatica resume la sintaxis implementada actualmente en el proyecto, escrita en una forma independiente de Jison y pensada como base del entregable del enunciado.
-
-## Convenciones
-
-- `epsilon` representa vacio.
-- Los terminales se muestran entre comillas cuando conviene.
-- `SEP` representa salto de linea o `;`.
-
 ## Programa
 
 ```bnf
