@@ -393,61 +393,130 @@ th {
 .ast-visual-surface {
   flex: 1;
   overflow: auto;
-  padding: 8px 4px 4px;
+  padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(16, 33, 43, 0.08);
-  background:
-    radial-gradient(circle at top right, rgba(15, 118, 110, 0.08), transparent 24%),
-    linear-gradient(180deg, #fffdfa, #f6efe5);
+  border: 1px solid rgba(16, 33, 43, 0.12);
+  background: #ffffff;
+}
+
+.ast-visual-canvas {
+  display: flex;
+  justify-content: center;
+  min-width: max-content;
+  padding: 6px 12px 20px;
+}
+
+.ast-graphviz-surface {
+  min-width: max-content;
+  min-height: 100%;
+}
+
+.ast-graphviz-surface svg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+}
+
+.ast-tree-root,
+.ast-tree-children {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: max-content;
+  margin: 0 auto;
+  padding-left: 0;
+  list-style: none;
+}
+
+.ast-tree-root {
+  padding-top: 0;
 }
 
 .ast-tree-node {
   position: relative;
-  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 6px 0;
+  list-style: none;
 }
 
-.ast-tree-node::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(15, 118, 110, 0.18);
-}
-
+.ast-tree-node::before,
 .ast-tree-node::after {
   content: "";
   position: absolute;
-  left: 10px;
-  top: 18px;
-  width: 12px;
-  height: 1px;
-  background: rgba(15, 118, 110, 0.28);
+  top: 0;
+  width: 50%;
+  height: 28px;
+  border-top: 2px solid #111111;
+}
+
+.ast-tree-node::before {
+  right: 50%;
+  border-right: 2px solid #111111;
+}
+
+.ast-tree-node::after {
+  left: 50%;
+  border-left: 2px solid #111111;
+}
+
+.ast-tree-root > .ast-tree-node {
+  padding-top: 0;
+}
+
+.ast-tree-root > .ast-tree-node::before,
+.ast-tree-root > .ast-tree-node::after,
+.ast-tree-node:only-child::before,
+.ast-tree-node:only-child::after {
+  display: none;
+}
+
+.ast-tree-node:first-child::before,
+.ast-tree-node:last-child::after {
+  border: 0;
+}
+
+.ast-tree-node:last-child::before {
+  border-radius: 0 8px 0 0;
+}
+
+.ast-tree-node:first-child::after {
+  border-radius: 8px 0 0 0;
 }
 
 .ast-tree-tag {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  margin: 10px 0;
+  justify-content: center;
+  min-height: 44px;
   padding: 8px 14px;
-  border: 1px solid rgba(15, 118, 110, 0.18);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffffff, #eaf6f4);
-  color: var(--accent-ink);
-  font-family: Consolas, "Courier New", monospace;
+  border: 2px solid #111111;
+  background: #ffffff;
+  color: #2a3cff;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
   font-size: 13px;
-  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.08);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.08);
 }
 
 .ast-tree-children {
-  margin-left: 6px;
-  padding-bottom: 4px;
+  position: relative;
+  padding-top: 28px;
 }
 
-.ast-tree-children > .ast-tree-node:last-child::before {
-  bottom: calc(100% - 28px);
+.ast-tree-children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 28px;
+  border-left: 2px solid #111111;
 }
 
 @media (max-width: 1160px) {

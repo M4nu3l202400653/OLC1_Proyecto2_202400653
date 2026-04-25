@@ -61,8 +61,10 @@ export class Distinto extends Instruccion {
     }
     
     public ast(arbol: Arbol, tabla: TablaSimbolos): Node {
-            
-        let node = new Node("");
+        let node = new Node("DISTINTO");
+        node.pushChild(this.operando1.ast(arbol, tabla));
+        node.pushChild(new Node("!="));
+        node.pushChild(this.operando2.ast(arbol, tabla));
         return node;
     }
 }

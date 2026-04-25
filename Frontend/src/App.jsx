@@ -61,17 +61,19 @@ function AstTreeNode({ node }) {
         return null;
     }
 
+    const children = node.children ?? [];
+
     return (
-        <div className="ast-tree-node">
+        <li className="ast-tree-node">
             <div className="ast-tree-tag">{node.tag}</div>
-            {(node.children?.length ?? 0) > 0 ? (
-                <div className="ast-tree-children">
-                    {node.children.map((child, index) => (
+            {children.length > 0 ? (
+                <ul className="ast-tree-children">
+                    {children.map((child, index) => (
                         <AstTreeNode key={`${node.tag}-${index}`} node={child} />
                     ))}
-                </div>
+                </ul>
             ) : null}
-        </div>
+        </li>
     );
 }
 
@@ -88,6 +90,7 @@ function App() {
     const [tablaSimbolos, setTablaSimbolos] = useState([]);
     const [ast, setAst] = useState(null);
     const [astDot, setAstDot] = useState("");
+    const [astSvg, setAstSvg] = useState("");
     const inputArchivoRef = useRef(null);
     const gutterRef = useRef(null);
 
@@ -227,6 +230,7 @@ function App() {
                 setTablaSimbolos(Array.isArray(data?.tablaSimbolos) ? data.tablaSimbolos : []);
                 setAst(data?.ast ?? null);
                 setAstDot(data?.astDot ?? "");
+                setAstSvg(data?.astSvg ?? "");
             });
 
             if (!response.ok && (!Array.isArray(data?.errores) || data.errores.length === 0)) {
@@ -241,6 +245,7 @@ function App() {
             setTablaSimbolos([]);
             setAst(null);
             setAstDot("");
+            setAstSvg("");
             setErrores([
                 {
                     tipo: "Conexion",
@@ -479,7 +484,18 @@ function App() {
                             {vistaAst === "visual" ? (
                                 ast ? (
                                     <div className="ast-visual-surface">
-                                        <AstTreeNode node={ast} />
+                                        {astSvg ? (
+                                            <div
+                                                className="ast-graphviz-surface"
+                                                dangerouslySetInnerHTML={{ __html: astSvg }}
+                                            />
+                                        ) : (
+                                            <div className="ast-visual-canvas">
+                                                <ul className="ast-tree-root">
+                                                    <AstTreeNode node={ast} />
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <p className="empty-state">Sin AST generado.</p>

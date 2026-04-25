@@ -6,6 +6,7 @@ import { Funcion } from "../Instrucciones/Funcion";
 import { Struct } from "../Instrucciones/Struct";
 import { Arbol } from "../Simbolo/Arbol";
 import { BreakSignal, ContinueSignal, ReturnSignal } from "../Utilidades/Transferencia";
+const { spawnSync } = require("child_process");
 
 const registrarResultado = (arbol: Arbol, resultado: any, linea: number, columna: number) => {
     if (resultado instanceof Errores) {
@@ -28,14 +29,39 @@ const registrarResultado = (arbol: Arbol, resultado: any, linea: number, columna
     }
 };
 
-const construirAst = (instrucciones: Instruccion[]) => {
+const construirAst = (instrucciones: Instruccion[], arbol: Arbol) => {
     const raiz = new Node("INICIO");
 
     for (const instruccion of instrucciones) {
-        raiz.pushChild(instruccion.ast());
+        raiz.pushChild(instruccion.ast(arbol, arbol.tablaGlobal));
     }
 
     return raiz;
+};
+
+const generarSvgAst = (dot: string) => {
+    try {
+        const resultado = spawnSync("dot", ["-Tsvg"], {
+            input: dot,
+            encoding: "utf8",
+            maxBuffer: 10 * 1024 * 1024,
+        });
+
+        if (resultado.error || resultado.status !== 0) {
+            return "";
+        }
+
+        if (typeof resultado.stdout !== "string") {
+            return "";
+        }
+
+        return resultado.stdout
+            .replace(/<\?xml[\s\S]*?\?>/i, "")
+            .replace(/<!DOCTYPE[\s\S]*?>/i, "")
+            .trim();
+    } catch (_error) {
+        return "";
+    }
 };
 
 export const analizar = (req: any, res: any) => {
@@ -76,8 +102,10 @@ export const analizar = (req: any, res: any) => {
             registrarResultado(arbol, resultadoMain, 0, 0);
         }
 
-        const ast = construirAst(instrucciones);
+        const ast = construirAst(instrucciones, arbol);
         arbol.ast = ast;
+        const astDot = ast.getDot();
+        const astSvg = generarSvgAst(astDot);
 
         const lexicalErrors = Array.isArray(parserEngine.yy?.lexicalErrors) ? parserEngine.yy.lexicalErrors : [];
         lexicalErrors.forEach((error: Errores) => arbol.registrarError(error));
@@ -87,7 +115,8 @@ export const analizar = (req: any, res: any) => {
             errores: arbol.errores.map((error) => error.toJSON()),
             tablaSimbolos: arbol.simbolos.map((simbolo) => simbolo.toJSON()),
             ast: ast.toObject(),
-            astDot: ast.getDot(),
+            astDot,
+            astSvg,
         });
     } catch (error: any) {
         const errores: Errores[] = [];
@@ -109,6 +138,7 @@ export const analizar = (req: any, res: any) => {
             tablaSimbolos: [],
             ast: null,
             astDot: "",
+            astSvg: "",
         });
     }
 };

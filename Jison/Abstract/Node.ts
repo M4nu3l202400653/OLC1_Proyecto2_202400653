@@ -13,9 +13,9 @@ export class Node {
 
     public getDot(): string {
         return `digraph AST {
-    graph [fontname="Consolas", bgcolor="#10212b"];
-    node [fontname="Consolas", shape=rectangle, style="rounded,filled", fillcolor="#173547", color="#2a5f7a", fontcolor="#f4fbff"];
-    edge [color="#8ac6e6"];
+    graph [fontname="Trebuchet MS", bgcolor="#ffffff", ranksep="0.55", nodesep="0.3"];
+    node [fontname="Trebuchet MS", shape=rectangle, style="filled", fillcolor="#ffffff", color="#111111", penwidth="2", fontcolor="#2a3cff", margin="0.08,0.05"];
+    edge [color="#111111", penwidth="2"];
 ${this.getNodes("i")}
 }`;
     }
